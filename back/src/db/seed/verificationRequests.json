@@ -1,0 +1,53 @@
+[
+  {
+    "id": "req_1",
+    "userId": "usr_7",
+    "userName": "Нурбек Турсунов",
+    "userPhone": "+996 701 445 522",
+    "userAvatar": "https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&w=150&q=80",
+    "carModel": "Toyota Camry",
+    "carNumber": "01KG555ADF",
+    "carColor": "Белый металлик",
+    "carYear": 2018,
+    "documentPassportUrl": "https://images.unsplash.com/photo-1554774853-aae0a22c8aa4?auto=format&fit=crop&w=600&q=85",
+    "documentLicenseUrl": "https://images.unsplash.com/photo-1508962914676-134849a727f0?auto=format&fit=crop&w=600&q=85",
+    "documentCarPhotoUrl": "https://images.unsplash.com/photo-1617788138017-80ad40651399?auto=format&fit=crop&w=600&q=85",
+    "status": "Pending",
+    "dateSubmitted": "29.05.2026"
+  },
+  {
+    "id": "req_2",
+    "userId": "usr_1",
+    "userName": "Азамат Исаев",
+    "userPhone": "+996 555 123 456",
+    "userAvatar": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=150&q=80",
+    "carModel": "Toyota Land Cruiser Prado",
+    "carNumber": "02KG777AAA",
+    "carColor": "Серебристый",
+    "carYear": 2017,
+    "documentPassportUrl": "https://images.unsplash.com/photo-1554774853-aae0a22c8aa4?auto=format&fit=crop&w=600&q=85",
+    "documentLicenseUrl": "https://images.unsplash.com/photo-1508962914676-134849a727f0?auto=format&fit=crop&w=600&q=85",
+    "documentCarPhotoUrl": "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=600&q=85",
+    "status": "Approved",
+    "dateSubmitted": "11.03.2026",
+    "dateReviewed": "12.03.2026"
+  },
+  {
+    "id": "req_3",
+    "userId": "usr_5",
+    "userName": "Руслан Алиев",
+    "userPhone": "+996 705 332 211",
+    "userAvatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80",
+    "carModel": "Daewoo Nexia",
+    "carNumber": "08KG123AAB",
+    "carColor": "Красный",
+    "carYear": 2008,
+    "documentPassportUrl": "https://images.unsplash.com/photo-1554774853-aae0a22c8aa4?auto=format&fit=crop&w=600&q=85",
+    "documentLicenseUrl": "https://images.unsplash.com/photo-1508962914676-134849a727f0?auto=format&fit=crop&w=600&q=85",
+    "documentCarPhotoUrl": "https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=600&q=85",
+    "status": "Rejected",
+    "rejectReason": "Фото техпаспорта размытое — не читается номер кузова и VIN.",
+    "dateSubmitted": "10.01.2026",
+    "dateReviewed": "12.01.2026"
+  }
+]

@@ -1,0 +1,79 @@
+[
+  {
+    "id": "rd_1",
+    "driverId": "drv_1",
+    "driverName": "Азамат Исаев",
+    "driverAvatar": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=150&q=80",
+    "fromCity": "Бишкек",
+    "toCity": "Ош",
+    "date": "Сегодня",
+    "time": "10:00",
+    "price": 1500,
+    "totalSeats": 4,
+    "occupiedSeats": 2,
+    "status": "Active",
+    "carModel": "Toyota Prado",
+    "passengers": [
+      { "id": "usr_2", "name": "Бектур Усманов", "phone": "+996 700 987 654" },
+      { "id": "usr_3", "name": "Айгерим Сабырова", "phone": "+996 777 445 566" }
+    ]
+  },
+  {
+    "id": "rd_2",
+    "driverId": "drv_2",
+    "driverName": "Каныкей Борубаева",
+    "driverAvatar": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=150&q=80",
+    "fromCity": "Бишкек",
+    "toCity": "Каракол",
+    "date": "Завтра",
+    "time": "08:00",
+    "price": 800,
+    "totalSeats": 4,
+    "occupiedSeats": 4,
+    "status": "Active",
+    "carModel": "Lexus RX 350",
+    "passengers": [
+      { "id": "usr_2", "name": "Бектур Усманов", "phone": "+996 700 987 654" },
+      { "id": "usr_6", "name": "Улан Маматов", "phone": "+996 550 556 778" },
+      { "id": "p_1", "name": "Марат Оморов", "phone": "+996 553 441 229" },
+      { "id": "p_2", "name": "Жамиля Садыкова", "phone": "+996 707 334 112" }
+    ]
+  },
+  {
+    "id": "rd_3",
+    "driverId": "drv_1",
+    "driverName": "Азамат Исаев",
+    "driverAvatar": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=150&q=80",
+    "fromCity": "Ош",
+    "toCity": "Бишкек",
+    "date": "28.05.2026",
+    "time": "22:30",
+    "price": 1500,
+    "totalSeats": 4,
+    "occupiedSeats": 4,
+    "status": "Completed",
+    "carModel": "Toyota Prado",
+    "passengers": [
+      { "id": "usr_3", "name": "Айгерим Сабырова", "phone": "+996 777 445 566" },
+      { "id": "usr_6", "name": "Улан Маматов", "phone": "+996 550 556 778" },
+      { "id": "p_3", "name": "Нурсултан Кадыров", "phone": "+996 554 112 233" },
+      { "id": "p_4", "name": "Сезим Баитова", "phone": "+996 700 334 455" }
+    ]
+  },
+  {
+    "id": "rd_4",
+    "driverId": "drv_2",
+    "driverName": "Каныкей Борубаева",
+    "driverAvatar": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=150&q=80",
+    "fromCity": "Нарын",
+    "toCity": "Бишкек",
+    "date": "25.05.2026",
+    "time": "13:00",
+    "price": 700,
+    "totalSeats": 4,
+    "occupiedSeats": 0,
+    "status": "Cancelled",
+    "carModel": "Lexus RX 350",
+    "passengers": []
+  }
+]

@@ -1,0 +1,46 @@
+[
+  {
+    "id": "tx_1",
+    "amount": 1500,
+    "commission": 150,
+    "date": "30.05.2026 11:20",
+    "status": "Completed",
+    "type": "Payment",
+    "sender": "Бектур Усманов (пассажир)",
+    "recipient": "Азамат Исаев (водитель)",
+    "rideId": "rd_1"
+  },
+  {
+    "id": "tx_2",
+    "amount": 1500,
+    "commission": 150,
+    "date": "30.05.2026 11:23",
+    "status": "Completed",
+    "type": "Payment",
+    "sender": "Айгерим Сабырова (пассажир)",
+    "recipient": "Азамат Исаев (водитель)",
+    "rideId": "rd_1"
+  },
+  {
+    "id": "tx_3",
+    "amount": 5400,
+    "commission": 540,
+    "date": "28.05.2026 23:15",
+    "status": "Completed",
+    "type": "Payout",
+    "sender": "Попутка",
+    "recipient": "Азамат Исаев (водитель)",
+    "rideId": "rd_3"
+  },
+  {
+    "id": "tx_4",
+    "amount": 700,
+    "commission": 70,
+    "date": "25.05.2026 14:02",
+    "status": "Refunded",
+    "type": "Refund",
+    "sender": "Каныкей Борубаева (водитель)",
+    "recipient": "Улан Маматов (пассажир)",
+    "rideId": "rd_4"
+  }
+]

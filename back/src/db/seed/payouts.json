@@ -1,0 +1,29 @@
+[
+  {
+    "id": "pay_1",
+    "driverId": "drv_1",
+    "driverName": "Азамат Исаев",
+    "amount": 12400,
+    "bankCard": "•••• 4321",
+    "date": "29.05.2026",
+    "status": "Completed"
+  },
+  {
+    "id": "pay_2",
+    "driverId": "drv_2",
+    "driverName": "Каныкей Борубаева",
+    "amount": 8600,
+    "bankCard": "•••• 8899",
+    "date": "28.05.2026",
+    "status": "Completed"
+  },
+  {
+    "id": "pay_3",
+    "driverId": "drv_1",
+    "driverName": "Азамат Исаев",
+    "amount": 5400,
+    "bankCard": "•••• 4321",
+    "date": "30.05.2026",
+    "status": "Pending"
+  }
+]

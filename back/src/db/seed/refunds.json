@@ -1,0 +1,12 @@
+[
+  {
+    "id": "ref_1",
+    "rideId": "rd_4",
+    "passengerId": "usr_6",
+    "passengerName": "Улан Маматов",
+    "amount": 700,
+    "date": "25.05.2026",
+    "status": "Completed",
+    "reason": "Рейс Нарын — Бишкек отменён водителем по техническим причинам."
+  }
+]
