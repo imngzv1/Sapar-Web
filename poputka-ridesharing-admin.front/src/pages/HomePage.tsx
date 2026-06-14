@@ -98,15 +98,7 @@ export default function HomePage() {
               />
             )}
 
-            {activeTab === 'finances' && (
-              <FinancesTab 
-                transactions={transactions}
-                payouts={payouts}
-                refunds={refunds}
-                onApprovePayout={approvePayout}
-                onLogAction={logAction}
-              />
-            )}
+            {activeTab === 'finances' && <FinancesTab />}
 
             {activeTab === 'analytics' && (
               <AnalyticsTab 
