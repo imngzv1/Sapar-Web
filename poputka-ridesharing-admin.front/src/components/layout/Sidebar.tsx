@@ -69,8 +69,8 @@ export default function Sidebar() {
           {adminInitial}
         </div>
         <div className="overflow-hidden">
-          <p className="text-sm font-semibold text-white truncate">{admin?.login ?? 'Админ'}</p>
-          <p className="text-xs text-white/60 truncate">Модератор</p>
+          <p className="text-sm font-semibold text-white truncate">{admin?.login ?? 'Ислам'}</p>
+          <p className="text-xs text-white/60 truncate">Администратор</p>
         </div>
         <span className="ml-auto flex h-2 w-2 relative">
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>

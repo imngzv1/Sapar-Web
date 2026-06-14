@@ -1,20 +1,31 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+# Попутка — панель администратора
 
-# Run and deploy your AI Studio app
+Веб-приложение для управления сервисом совместных поездок.
 
-This contains everything you need to run your app locally.
+## Запуск
 
-View your app in AI Studio: https://ai.studio/apps/c7d93c64-605e-4688-b251-c2973f5829a7
+**Требования:** Node.js 18+
 
-## Run Locally
+### Фронтенд
 
-**Prerequisites:**  Node.js
+```bash
+cd poputka-ridesharing-admin.front
+npm install
+npm run dev
+```
 
+Приложение: http://localhost:3000
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+### Бэкенд (журнал действий)
+
+```bash
+cd back
+npm install
+npm run dev
+```
+
+API: http://localhost:4000
+
+## Переменные окружения
+
+Скопируйте `.env.example` в `.env` и укажите ключи Supabase.

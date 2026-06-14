@@ -70,6 +70,7 @@ export interface Ride {
   totalSeats: number;
   occupiedSeats: number;
   status: RideStatus;
+  dbStatus: string;
   passengers: Array<{
     id: string;
     name: string;
@@ -82,14 +83,17 @@ export interface Complaint {
   id: string;
   reporterId: string;
   reporterName: string;
+  reporterPhone?: string;
   reportedId: string;
   reportedName: string;
+  reportedPhone?: string;
   reportedRole: UserRole;
   text: string;
   category: 'rudeness' | 'reckless_driving' | 'car_dirty' | 'noshow' | 'price_mismatch' | 'other';
   date: string;
   status: ComplaintStatus;
   decision?: string;
+  rating?: number;
 }
 
 export interface City {

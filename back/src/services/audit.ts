@@ -1,7 +1,7 @@
 /*
   Журнал действий администратора. Каждое действие уходит:
-    1) в admin_logs (пока — db/seed/logs.json) — это читает фронт через /api/logs;
-    2) в файл ../logs/admin-actions-YYYY-MM-DD.log (строки JSON);
+    1) в файл logs/admin-actions-YYYY-MM-DD.log (основное хранилище, читает GET /api/logs);
+    2) в db/seed/logs.json (резервная копия для ротации);
     3) в stdout — попадает в pm2 logs.
 */
 
@@ -32,6 +32,45 @@ interface RecordArgs {
   details: string;
 }
 
+function readLogsFromFiles(): AdminLog[] {
+  ensureLogsDir();
+  const byId = new Map<string, AdminLog>();
+
+  let files: string[];
+  try {
+    files = fs
+      .readdirSync(config.logsDir)
+      .filter((name) => name.startsWith('admin-actions-') && name.endsWith('.log'))
+      .sort();
+  } catch {
+    return [];
+  }
+
+  for (const name of files) {
+    const fullPath = path.join(config.logsDir, name);
+    let content: string;
+    try {
+      content = fs.readFileSync(fullPath, 'utf8');
+    } catch {
+      continue;
+    }
+    for (const line of content.split('\n')) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+      try {
+        const entry = JSON.parse(trimmed) as AdminLog;
+        if (entry?.id) {
+          byId.set(entry.id, entry);
+        }
+      } catch {
+        // пропускаем битые строки
+      }
+    }
+  }
+
+  return Array.from(byId.values());
+}
+
 export function recordAudit(args: RecordArgs): AdminLog {
   const entry: AdminLog = {
     id: nextId('log'),
@@ -60,8 +99,12 @@ export function recordAudit(args: RecordArgs): AdminLog {
 }
 
 export function listAuditLogs(): AdminLog[] {
-  const all = logsStore.list();
-  return [...all].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  const fromFiles = readLogsFromFiles();
+  if (fromFiles.length > 0) {
+    return fromFiles.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  }
+  // если файлов ещё нет — читаем json (обратная совместимость)
+  return [...logsStore.list()].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
 }
 
 export const auditStore = logsStore;

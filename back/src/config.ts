@@ -7,7 +7,7 @@ export const config = {
 
   corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:3000',
 
-  defaultAdminName: process.env.DEFAULT_ADMIN_NAME || 'Админ Данияр',
+  defaultAdminName: process.env.DEFAULT_ADMIN_NAME || 'Ислам',
 
   logsDir: path.resolve(__dirname, '..', process.env.LOGS_DIR || '../logs'),
   logRetentionDays: Number(process.env.LOG_RETENTION_DAYS) || 30,

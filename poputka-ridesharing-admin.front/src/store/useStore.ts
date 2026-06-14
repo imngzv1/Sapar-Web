@@ -12,6 +12,8 @@ import {
   FAQItem, 
   AdminLog 
 } from '../types';
+import { createAdminLog } from '../lib/adminLogs';
+import { useAuthStore } from './useAuthStore';
 
 import { 
   INITIAL_USERS, 
@@ -26,6 +28,13 @@ import {
   INITIAL_FAQ, 
   INITIAL_LOGS 
 } from '../data';
+
+const DEMO_LOG_IDS = new Set(['log_1', 'log_2', 'log_3']);
+
+function loadLogsFromStorage(): AdminLog[] {
+  const saved = getLocalStorage('poputka_logs', INITIAL_LOGS);
+  return saved.filter((l) => !DEMO_LOG_IDS.has(l.id));
+}
 
 // Helper for localStorage retrieval
 const getLocalStorage = <T>(key: string, initial: T): T => {
@@ -89,27 +98,44 @@ export const useStore = create<AppState>((set, get) => ({
   payouts: getLocalStorage('poputka_payouts', INITIAL_PAYOUTS),
   refunds: getLocalStorage('poputka_refunds', INITIAL_REFUNDS),
   faq: getLocalStorage('poputka_faq', INITIAL_FAQ),
-  logs: getLocalStorage('poputka_logs', INITIAL_LOGS),
+  logs: loadLogsFromStorage(),
 
   setActiveTab: (tab) => set({ activeTab: tab }),
   setSidebarOpen: (open) => set((state) => ({ 
     sidebarOpen: typeof open === 'function' ? open(state.sidebarOpen) : open 
   })),
 
-  logAction: (action, targetType, targetId, details) => set((state) => {
-    const newLog: AdminLog = {
+  logAction: (action, targetType, targetId, details) => {
+    const adminName = useAuthStore.getState().admin?.login ?? 'Ислам';
+    const fallback: AdminLog = {
       id: `log_${Date.now()}`,
-      adminName: 'Админ Ислам',
+      adminName,
       action,
       targetType,
       targetId,
-      date: new Date().toLocaleString('ru', { timeZone: 'UTC' }).replace(',', ''),
-      details
+      date: new Date().toLocaleString('ru-RU'),
+      details,
     };
-    const updated = [newLog, ...state.logs];
-    setLocalStorage('poputka_logs', updated);
-    return { logs: updated };
-  }),
+
+    set((state) => {
+      const updated = [fallback, ...state.logs];
+      setLocalStorage('poputka_logs', updated);
+      return { logs: updated };
+    });
+
+    createAdminLog({ adminName, action, targetType, targetId, details })
+      .then((entry) => {
+        set((state) => {
+          const withoutFallback = state.logs.filter((l) => l.id !== fallback.id);
+          const updated = [entry, ...withoutFallback];
+          setLocalStorage('poputka_logs', updated);
+          return { logs: updated };
+        });
+      })
+      .catch((err) => {
+        console.warn('[audit] не удалось отправить на сервер:', err.message);
+      });
+  },
 
   blockUser: (userId, reason) => set((state) => {
     const updatedUsers = state.users.map(u => u.id === userId ? { ...u, status: 'blocked' as const, blockReason: reason } : u);

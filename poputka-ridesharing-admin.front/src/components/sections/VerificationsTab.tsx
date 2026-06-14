@@ -40,7 +40,16 @@ const initials = (name: string | undefined, last: string | null | undefined) => 
 const driverFullName = (d: DbDriver) =>
   d.user ? [d.user.name, d.user.last_name].filter(Boolean).join(' ') : '—';
 
-export default function VerificationsTab() {
+interface VerificationsTabProps {
+  onLogAction: (
+    action: string,
+    targetType: 'verification',
+    targetId: string,
+    details: string,
+  ) => void;
+}
+
+export default function VerificationsTab({ onLogAction }: VerificationsTabProps) {
   const [drivers, setDrivers] = useState<DbDriver[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -93,6 +102,12 @@ export default function VerificationsTab() {
     try {
       setApproving(driver.id);
       await approveDriverVerification(driver.id);
+      onLogAction(
+        'Верификация одобрена',
+        'verification',
+        driver.id,
+        `Водитель ${driverFullName(driver)} верифицирован (is_verified = true).`,
+      );
       setSelected(null);
       await load();
     } catch (e: any) {

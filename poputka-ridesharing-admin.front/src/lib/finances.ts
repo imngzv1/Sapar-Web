@@ -16,6 +16,7 @@ export interface FinanceTransaction {
   commission: number;
   driverPayout: number;
   date: string;
+  createdAt: string;
   status: string;
   statusLabel: string;
 }
@@ -27,6 +28,7 @@ export interface FinanceRefund {
   passengerName: string;
   amount: number;
   date: string;
+  createdAt: string;
   reason: string;
 }
 
@@ -169,6 +171,7 @@ export async function fetchFinanceTransactions(): Promise<FinanceTransaction[]> 
       commission: toNumber(row.platform_commission),
       driverPayout: toNumber(row.driver_payout),
       date: formatDateTime(row.created_at),
+      createdAt: row.created_at,
       status,
       statusLabel: label,
     };
@@ -213,9 +216,26 @@ export async function fetchFinanceRefunds(): Promise<FinanceRefund[]> {
       passengerName: fullName(passenger ?? null),
       amount: price * booking.seats_count,
       date: formatDate(booking.created_at),
+      createdAt: booking.created_at,
       reason: 'Бронирование отменено — средства возвращены пассажиру.',
     };
   });
+}
+
+export function computeFinanceStats(transactions: FinanceTransaction[]): FinanceStats {
+  return transactions.reduce(
+    (acc, row) => ({
+      grossVolume: acc.grossVolume + row.amount,
+      serviceCommission: acc.serviceCommission + row.commission,
+      driverPayoutsTotal: acc.driverPayoutsTotal + row.driverPayout,
+    }),
+    { grossVolume: 0, serviceCommission: 0, driverPayoutsTotal: 0 },
+  );
+}
+
+export function matchesYearMonth(iso: string, year: number, month: number): boolean {
+  const d = new Date(iso);
+  return d.getFullYear() === year && d.getMonth() + 1 === month;
 }
 
 export async function fetchFinances() {

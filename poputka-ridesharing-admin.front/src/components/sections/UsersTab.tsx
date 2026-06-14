@@ -12,7 +12,6 @@ import {
   User as UserIcon,
   Loader2,
   MapPin,
-  Hash,
 } from 'lucide-react';
 import {
   DbUser,
@@ -22,6 +21,12 @@ import {
   fetchUserDrivenRides,
   fetchUserBookings,
 } from '../../lib/users';
+import {
+  rideStatusLabel,
+  rideStatusBadgeClass,
+  bookingStatusLabel,
+  bookingStatusBadgeClass,
+} from '../../lib/statuses';
 
 type RoleFilter = 'all' | 'driver' | 'passenger';
 
@@ -41,24 +46,6 @@ const initials = (name: string, last: string | null) => {
 };
 
 const fullName = (u: DbUser) => [u.name, u.last_name].filter(Boolean).join(' ');
-
-const rideStatusLabel = (s: string) =>
-  s === 'active' ? 'Активна' : s === 'cancelled' ? 'Отменена' : s;
-
-const bookingStatusLabel = (s: string) => {
-  switch (s) {
-    case 'pending':
-      return 'Ожидает';
-    case 'confirmed':
-      return 'Подтверждена';
-    case 'cancelled':
-      return 'Отменена';
-    case 'completed':
-      return 'Завершена';
-    default:
-      return s;
-  }
-};
 
 export default function UsersTab() {
   const [users, setUsers] = useState<DbUser[]>([]);
@@ -178,8 +165,6 @@ export default function UsersTab() {
                     <th className="p-4 pl-6">Пользователь</th>
                     <th className="p-4">Контакты</th>
                     <th className="p-4">Роль</th>
-                    <th className="p-4 text-center">Поездок</th>
-                    <th className="p-4 text-center">Рейтинг</th>
                     <th className="p-4">Регистрация</th>
                     <th className="p-4 pr-6 text-right">Действия</th>
                   </tr>
@@ -187,7 +172,7 @@ export default function UsersTab() {
                 <tbody className="divide-y divide-gray-100 text-sm">
                   {paginated.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="p-12 text-center text-[#8BA6B1]">
+                      <td colSpan={5} className="p-12 text-center text-[#8BA6B1]">
                         Нет пользователей по заданным критериям.
                       </td>
                     </tr>
@@ -225,15 +210,6 @@ export default function UsersTab() {
                             }`}
                           >
                             {u.is_driver ? 'Водитель' : 'Пассажир'}
-                          </span>
-                        </td>
-                        <td className="p-4 text-center font-mono font-bold text-xs text-[#476673]">
-                          {u.trips_count ?? 0}
-                        </td>
-                        <td className="p-4 text-center text-xs text-[#476673]">
-                          <span className="inline-flex items-center gap-1">
-                            <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
-                            {(u.rating ?? 0).toFixed(1)}
                           </span>
                         </td>
                         <td className="p-4 text-xs text-[#476673] font-mono">
@@ -302,29 +278,30 @@ function UserDetailDrawer({ user, onClose }: { user: DbUser; onClose: () => void
     (async () => {
       try {
         setHistoryError(null);
-        setLoadingDriver(true);
         setLoadingPassenger(true);
+        if (user.is_driver) setLoadingDriver(true);
+
         const [d, b] = await Promise.all([
-          fetchUserDrivenRides(user.id),
+          user.is_driver ? fetchUserDrivenRides(user.id) : Promise.resolve([]),
           fetchUserBookings(user.id),
         ]);
         if (!cancelled) {
-          setDrivenRides(d);
+          setDrivenRides(user.is_driver ? d : null);
           setBookings(b);
         }
       } catch (e: any) {
         if (!cancelled) setHistoryError(e?.message ?? 'Не удалось загрузить историю');
       } finally {
         if (!cancelled) {
-          setLoadingDriver(false);
           setLoadingPassenger(false);
+          if (user.is_driver) setLoadingDriver(false);
         }
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [user.id]);
+  }, [user.id, user.is_driver]);
 
   return (
     <div className="fixed inset-y-0 right-0 w-full sm:max-w-lg bg-white border-l border-[#D6DCDC] shadow-2xl z-50 overflow-y-auto flex flex-col">
@@ -352,10 +329,12 @@ function UserDetailDrawer({ user, onClose }: { user: DbUser; onClose: () => void
             >
               {user.is_driver ? 'Водитель' : 'Пассажир'}
             </span>
-            <span className="inline-flex items-center gap-1 text-xs bg-amber-50 text-amber-800 font-bold px-2 py-0.5 rounded-full">
-              <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
-              {(user.rating ?? 0).toFixed(1)}
-            </span>
+            {user.is_driver && (
+              <span className="inline-flex items-center gap-1 text-xs bg-amber-50 text-amber-800 font-bold px-2 py-0.5 rounded-full">
+                <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
+                {(user.driver_rating ?? 0).toFixed(1)}
+              </span>
+            )}
           </div>
         </div>
 
@@ -375,54 +354,65 @@ function UserDetailDrawer({ user, onClose }: { user: DbUser; onClose: () => void
               <span>Зарегистрирован: {formatDate(user.created_at)}</span>
             </p>
             <p className="flex items-center gap-2.5">
-              <Hash className="w-4 h-4 text-[#8BA6B1] shrink-0" />
+              <span className="text-[#8BA6B1] shrink-0 font-semibold w-4">ID</span>
               <span className="font-mono text-[10px] break-all">{user.id}</span>
             </p>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <div className="bg-[#F3F4F6] p-4 rounded-sm border border-[#D6DCDC] text-center">
-            <span className="text-xs text-[#8BA6B1] font-semibold">Поездок (counter)</span>
-            <p className="text-2xl font-bold text-[#476673] mt-1">{user.trips_count ?? 0}</p>
+        {user.is_driver && (
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-[#F3F4F6] p-4 rounded-sm border border-[#D6DCDC] text-center">
+              <span className="text-xs text-[#8BA6B1] font-semibold">Поездок</span>
+              <p className="text-2xl font-bold text-[#476673] mt-1">{user.driver_trips_count ?? 0}</p>
+            </div>
+            <div className="bg-[#F3F4F6] p-4 rounded-sm border border-[#D6DCDC] text-center">
+              <span className="text-xs text-[#8BA6B1] font-semibold">Рейтинг</span>
+              <p className="text-2xl font-bold text-[#476673] mt-1">
+                {(user.driver_rating ?? 0).toFixed(1)}
+              </p>
+            </div>
           </div>
-          <div className="bg-[#F3F4F6] p-4 rounded-sm border border-[#D6DCDC] text-center">
-            <span className="text-xs text-[#8BA6B1] font-semibold">Рейтинг</span>
-            <p className="text-2xl font-bold text-[#476673] mt-1">
-              {(user.rating ?? 0).toFixed(1)}
-            </p>
-          </div>
-        </div>
+        )}
 
         <div>
-          <div className="flex bg-[#F3F4F6] p-1 rounded-sm border border-[#D6DCDC] text-xs mb-3">
-            <button
-              onClick={() => setTab('driver')}
-              className={`flex-1 px-3 py-1.5 font-semibold rounded-md transition-all flex items-center justify-center gap-1.5 ${
-                tab === 'driver'
-                  ? 'bg-white text-[#476673] shadow-xs'
-                  : 'text-[#8BA6B1] hover:text-[#476673]'
-              }`}
-            >
-              <Car className="w-3.5 h-3.5" /> Как водитель
-              {drivenRides && (
-                <span className="text-[10px] text-[#8BA6B1]">({drivenRides.length})</span>
-              )}
-            </button>
-            <button
-              onClick={() => setTab('passenger')}
-              className={`flex-1 px-3 py-1.5 font-semibold rounded-md transition-all flex items-center justify-center gap-1.5 ${
-                tab === 'passenger'
-                  ? 'bg-white text-[#476673] shadow-xs'
-                  : 'text-[#8BA6B1] hover:text-[#476673]'
-              }`}
-            >
-              <UserIcon className="w-3.5 h-3.5" /> Как пассажир
+          {user.is_driver ? (
+            <div className="flex bg-[#F3F4F6] p-1 rounded-sm border border-[#D6DCDC] text-xs mb-3">
+              <button
+                onClick={() => setTab('driver')}
+                className={`flex-1 px-3 py-1.5 font-semibold rounded-md transition-all flex items-center justify-center gap-1.5 ${
+                  tab === 'driver'
+                    ? 'bg-white text-[#476673] shadow-xs'
+                    : 'text-[#8BA6B1] hover:text-[#476673]'
+                }`}
+              >
+                <Car className="w-3.5 h-3.5" /> Как водитель
+                {drivenRides && (
+                  <span className="text-[10px] text-[#8BA6B1]">({drivenRides.length})</span>
+                )}
+              </button>
+              <button
+                onClick={() => setTab('passenger')}
+                className={`flex-1 px-3 py-1.5 font-semibold rounded-md transition-all flex items-center justify-center gap-1.5 ${
+                  tab === 'passenger'
+                    ? 'bg-white text-[#476673] shadow-xs'
+                    : 'text-[#8BA6B1] hover:text-[#476673]'
+                }`}
+              >
+                <UserIcon className="w-3.5 h-3.5" /> Как пассажир
+                {bookings && (
+                  <span className="text-[10px] text-[#8BA6B1]">({bookings.length})</span>
+                )}
+              </button>
+            </div>
+          ) : (
+            <h5 className="text-xs font-bold uppercase tracking-wider text-[#8BA6B1] mb-3">
+              История поездок
               {bookings && (
-                <span className="text-[10px] text-[#8BA6B1]">({bookings.length})</span>
+                <span className="font-normal normal-case ml-1">({bookings.length})</span>
               )}
-            </button>
-          </div>
+            </h5>
+          )}
 
           {historyError && (
             <div className="text-xs text-rose-700 bg-rose-50 border border-rose-200 rounded-sm px-3 py-2 mb-2">
@@ -430,7 +420,7 @@ function UserDetailDrawer({ user, onClose }: { user: DbUser; onClose: () => void
             </div>
           )}
 
-          {tab === 'driver' ? (
+          {user.is_driver && tab === 'driver' ? (
             loadingDriver ? (
               <HistoryLoading />
             ) : !drivenRides || drivenRides.length === 0 ? (
@@ -490,11 +480,7 @@ function RideCard({ ride }: { ride: DbRideSummary }) {
           {ride.to_city?.name ?? `#${ride.to_city_id}`}
         </div>
         <span
-          className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-            ride.status === 'active'
-              ? 'bg-emerald-100 text-emerald-800'
-              : 'bg-rose-100 text-rose-800'
-          }`}
+          className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${rideStatusBadgeClass(ride.status)}`}
         >
           {rideStatusLabel(ride.status)}
         </span>
@@ -528,13 +514,7 @@ function BookingCard({ booking }: { booking: DbBooking }) {
           )}
         </div>
         <span
-          className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-            booking.status === 'confirmed' || booking.status === 'completed'
-              ? 'bg-emerald-100 text-emerald-800'
-              : booking.status === 'cancelled'
-              ? 'bg-rose-100 text-rose-800'
-              : 'bg-amber-100 text-amber-800'
-          }`}
+          className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${bookingStatusBadgeClass(booking.status)}`}
         >
           {bookingStatusLabel(booking.status)}
         </span>

@@ -1,21 +1,56 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   DollarSign,
   Percent,
   Loader2,
   Wallet,
+  Calendar,
 } from 'lucide-react';
 import {
   fetchFinances,
-  FinanceStats,
+  computeFinanceStats,
+  matchesYearMonth,
   FinanceTransaction,
   FinanceRefund,
 } from '../../lib/finances';
 
+const MONTH_NAMES = [
+  'Январь',
+  'Февраль',
+  'Март',
+  'Апрель',
+  'Май',
+  'Июнь',
+  'Июль',
+  'Август',
+  'Сентябрь',
+  'Октябрь',
+  'Ноябрь',
+  'Декабрь',
+];
+
+function collectYears(transactions: FinanceTransaction[], refunds: FinanceRefund[]): number[] {
+  const years = new Set<number>();
+  const currentYear = new Date().getFullYear();
+  years.add(currentYear);
+
+  for (const tx of transactions) {
+    years.add(new Date(tx.createdAt).getFullYear());
+  }
+  for (const ref of refunds) {
+    years.add(new Date(ref.createdAt).getFullYear());
+  }
+
+  return Array.from(years).sort((a, b) => b - a);
+}
+
 export default function FinancesTab() {
-  const [stats, setStats] = useState<FinanceStats | null>(null);
-  const [transactions, setTransactions] = useState<FinanceTransaction[]>([]);
-  const [refunds, setRefunds] = useState<FinanceRefund[]>([]);
+  const now = new Date();
+  const [selectedYear, setSelectedYear] = useState(now.getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
+
+  const [allTransactions, setAllTransactions] = useState<FinanceTransaction[]>([]);
+  const [allRefunds, setAllRefunds] = useState<FinanceRefund[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeSubTab, setActiveSubTab] = useState<'tx' | 'ref'>('tx');
@@ -27,9 +62,8 @@ export default function FinancesTab() {
         setLoading(true);
         const data = await fetchFinances();
         if (!cancelled) {
-          setStats(data.stats);
-          setTransactions(data.transactions);
-          setRefunds(data.refunds);
+          setAllTransactions(data.transactions);
+          setAllRefunds(data.refunds);
           setError(null);
         }
       } catch (e: any) {
@@ -43,15 +77,64 @@ export default function FinancesTab() {
     };
   }, []);
 
-  const grossVolume = stats?.grossVolume ?? 0;
-  const serviceCommission = stats?.serviceCommission ?? 0;
-  const driverPayoutsTotal = stats?.driverPayoutsTotal ?? 0;
+  const availableYears = useMemo(
+    () => collectYears(allTransactions, allRefunds),
+    [allTransactions, allRefunds],
+  );
+
+  const transactions = useMemo(
+    () => allTransactions.filter((tx) => matchesYearMonth(tx.createdAt, selectedYear, selectedMonth)),
+    [allTransactions, selectedYear, selectedMonth],
+  );
+
+  const refunds = useMemo(
+    () => allRefunds.filter((ref) => matchesYearMonth(ref.createdAt, selectedYear, selectedMonth)),
+    [allRefunds, selectedYear, selectedMonth],
+  );
+
+  const stats = useMemo(() => computeFinanceStats(transactions), [transactions]);
+
+  const grossVolume = stats.grossVolume;
+  const serviceCommission = stats.serviceCommission;
+  const driverPayoutsTotal = stats.driverPayoutsTotal;
+
+  const periodLabel = `${MONTH_NAMES[selectedMonth - 1]} ${selectedYear}`;
 
   return (
     <div id="finances-tab-view" className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold text-[#476673]">Финансы</h2>
-        <p className="text-sm text-[#8BA6B1]">Транзакции и возвраты пассажирам</p>
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-bold text-[#476673]">Финансы</h2>
+          <p className="text-sm text-[#8BA6B1]">Транзакции и возвраты пассажирам</p>
+        </div>
+
+        {!loading && !error && (
+          <div className="flex items-center gap-2 flex-wrap">
+            <Calendar className="w-4 h-4 text-[#8BA6B1] shrink-0" />
+            <select
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(Number(e.target.value))}
+              className="text-sm px-3 py-2 bg-white border border-[#D6DCDC] rounded-sm text-[#476673] focus:outline-none focus:ring-2 focus:ring-[#476673]/20"
+            >
+              {availableYears.map((year) => (
+                <option key={year} value={year}>
+                  {year}
+                </option>
+              ))}
+            </select>
+            <select
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(Number(e.target.value))}
+              className="text-sm px-3 py-2 bg-white border border-[#D6DCDC] rounded-sm text-[#476673] focus:outline-none focus:ring-2 focus:ring-[#476673]/20"
+            >
+              {MONTH_NAMES.map((name, i) => (
+                <option key={name} value={i + 1}>
+                  {name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
       {loading && (
@@ -69,6 +152,10 @@ export default function FinancesTab() {
 
       {!loading && !error && (
         <>
+          <p className="text-xs text-[#8BA6B1]">
+            Показаны данные за <span className="font-semibold text-[#476673]">{periodLabel}</span>
+          </p>
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div className="bg-white px-4 py-3 rounded-sm border border-[#D6DCDC] flex items-center justify-between gap-3">
               <div className="min-w-0">
@@ -79,7 +166,7 @@ export default function FinancesTab() {
                   {grossVolume.toLocaleString('ru')} сом
                 </p>
                 <span className="text-[10px] text-[#8BA6B1] mt-1 block">
-                  Сумма всех оплат по бронированиям
+                  Сумма всех оплат за период
                 </span>
               </div>
               <div className="p-2 rounded-sm bg-[#F3F4F6] text-[#476673] shrink-0">
@@ -113,7 +200,7 @@ export default function FinancesTab() {
                   {driverPayoutsTotal.toLocaleString('ru')} сом
                 </p>
                 <span className="text-[10px] text-[#8BA6B1] mt-1 block">
-                  Выплачено водителям за поездки
+                  Выплачено водителям за период
                 </span>
               </div>
               <div className="p-2 rounded-sm bg-[#F3F4F6] text-[#476673] shrink-0">
@@ -165,11 +252,7 @@ export default function FinancesTab() {
                     {transactions.length === 0 ? (
                       <tr>
                         <td colSpan={6} className="p-12 text-center text-[#8BA6B1]">
-                          <p>Транзакций пока нет.</p>
-                          <p className="text-[11px] mt-2 text-amber-700/80">
-                            Если в Supabase уже есть записи — откройте SQL Editor и выполните
-                            файл <span className="font-mono">supabase/rls-transactions.sql</span>
-                          </p>
+                          <p>Нет транзакций за {periodLabel}.</p>
                         </td>
                       </tr>
                     ) : (
@@ -226,7 +309,7 @@ export default function FinancesTab() {
                     {refunds.length === 0 ? (
                       <tr>
                         <td colSpan={6} className="p-12 text-center text-[#8BA6B1]">
-                          Возвратов пока нет.
+                          Нет возвратов за {periodLabel}.
                         </td>
                       </tr>
                     ) : (

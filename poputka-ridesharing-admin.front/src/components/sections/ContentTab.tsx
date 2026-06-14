@@ -17,8 +17,18 @@ import {
   updateCity,
   deleteCity,
 } from '../../lib/cities';
+import { AdminLog } from '../../types';
 
-export default function ContentTab() {
+interface ContentTabProps {
+  onLogAction: (
+    action: string,
+    targetType: AdminLog['targetType'],
+    targetId: string,
+    details: string,
+  ) => void;
+}
+
+export default function ContentTab({ onLogAction }: ContentTabProps) {
   const [cities, setCities] = useState<DbCity[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -78,6 +88,7 @@ export default function ContentTab() {
     try {
       setAdding(true);
       await createCity(name, newRegion);
+      onLogAction('Город добавлен', 'city', name, `Добавлен город «${name}».`);
       setNewName('');
       setNewRegion('');
       setAddError(null);
@@ -107,6 +118,7 @@ export default function ContentTab() {
     try {
       setSavingEdit(true);
       await updateCity(id, name, editRegion);
+      onLogAction('Город изменён', 'city', String(id), `Город обновлён: «${name}».`);
       cancelEdit();
       await load();
     } catch (e: any) {
@@ -120,6 +132,7 @@ export default function ContentTab() {
     try {
       setDeletingId(city.id);
       await deleteCity(city.id);
+      onLogAction('Город удалён', 'city', String(city.id), `Удалён город «${city.name}».`);
       setConfirmDelete(null);
       await load();
     } catch (e: any) {

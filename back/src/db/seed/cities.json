@@ -1,10 +1,1 @@
-[
-  { "id": "cit_1", "name": "Бишкек", "status": "active", "ridesCount": 384 },
-  { "id": "cit_2", "name": "Ош", "status": "active", "ridesCount": 295 },
-  { "id": "cit_3", "name": "Джалал-Абад", "status": "active", "ridesCount": 154 },
-  { "id": "cit_4", "name": "Каракол", "status": "active", "ridesCount": 98 },
-  { "id": "cit_5", "name": "Чолпон-Ата", "status": "active", "ridesCount": 112 },
-  { "id": "cit_6", "name": "Нарын", "status": "active", "ridesCount": 56 },
-  { "id": "cit_7", "name": "Талас", "status": "active", "ridesCount": 42 },
-  { "id": "cit_8", "name": "Баткен", "status": "active", "ridesCount": 31 }
-]
+﻿[]

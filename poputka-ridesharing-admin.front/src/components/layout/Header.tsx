@@ -1,25 +1,40 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Menu, ShieldCheck, AlertCircle, LogOut } from 'lucide-react';
 import { useStore } from '../../store/useStore';
 import { useAuthStore } from '../../store/useAuthStore';
+import { supabase } from '../../lib/supabase';
 
 export default function Header() {
-  const sidebarOpen = useStore((state) => state.sidebarOpen);
   const setSidebarOpen = useStore((state) => state.setSidebarOpen);
-  const activeTab = useStore((state) => state.activeTab);
   const setActiveTab = useStore((state) => state.setActiveTab);
-  const verificationRequests = useStore((state) => state.verificationRequests);
   const admin = useAuthStore((s) => s.admin);
   const logout = useAuthStore((s) => s.logout);
 
-  const pendingVerificationsCount = verificationRequests.filter(r => r.status === 'Pending').length;
+  const [pendingVerificationsCount, setPendingVerificationsCount] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      const { count } = await supabase
+        .from('drivers')
+        .select('*', { count: 'exact', head: true })
+        .eq('is_verified', false);
+      if (!cancelled) setPendingVerificationsCount(count ?? 0);
+    };
+    load();
+    const interval = setInterval(load, 30000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, []);
 
   return (
     <header id="admin-toolbar-header" className="h-14 bg-white border-b border-[#D6DCDC] px-5 flex items-center justify-between shrink-0 select-none">
       <div className="flex items-center gap-3">
         <button
           id="sidebar-toggle-button"
-          onClick={() => setSidebarOpen(prev => !prev)}
+          onClick={() => setSidebarOpen((prev) => !prev)}
           className="p-1.5 rounded-sm hover:bg-gray-100 text-[#476673] transition-colors cursor-pointer"
           title="Скрыть/показать меню"
         >
@@ -42,7 +57,7 @@ export default function Header() {
 
         <div className="flex items-center gap-2 text-xs font-semibold text-[#476673]">
           <ShieldCheck className="w-4 h-4 text-emerald-500" />
-          <span>{admin?.login ?? 'Старший модератор'}</span>
+          <span>{admin?.login ?? 'Ислам'}</span>
         </div>
 
         <button

@@ -1,10 +1,11 @@
 import { supabase } from './supabase';
-import { Complaint, ComplaintStatus } from '../types';
+import { Complaint } from '../types';
 
 interface DbUserRow {
   id: string;
   name: string;
   last_name: string | null;
+  phone: string;
 }
 
 interface DbReviewRow {
@@ -14,6 +15,7 @@ interface DbReviewRow {
   to_driver_id: string | null;
   rating: number;
   comment: string | null;
+  status: string;
   created_at: string;
 }
 
@@ -43,30 +45,31 @@ function mapReviewToComplaint(
   review: DbReviewRow,
   reporter: DbUserRow | undefined,
   driver: DbUserRow | undefined,
-  status: ComplaintStatus = 'Pending',
-  decision?: string,
 ): Complaint {
   return {
     id: review.id,
     reporterId: review.from_user_id ?? '',
     reporterName: fullName(reporter),
+    reporterPhone: reporter?.phone ?? '—',
     reportedId: review.to_driver_id ?? '',
     reportedName: fullName(driver),
+    reportedPhone: driver?.phone ?? '—',
     reportedRole: 'driver',
     category: mapCategory(review.rating),
     text: review.comment?.trim() || '—',
     date: formatDate(review.created_at),
-    status,
-    decision,
+    status: 'Pending',
+    rating: review.rating,
   };
 }
 
 export async function fetchComplaints(): Promise<Complaint[]> {
   const { data: reviews, error } = await supabase
     .from('reviews')
-    .select('id, ride_id, from_user_id, to_driver_id, rating, comment, created_at')
+    .select('id, ride_id, from_user_id, to_driver_id, rating, comment, status, created_at')
     .not('to_driver_id', 'is', null)
     .lt('rating', RATING_THRESHOLD)
+    .eq('status', 'new')
     .order('created_at', { ascending: false });
   if (error) throw error;
   if (!reviews?.length) return [];
@@ -79,7 +82,7 @@ export async function fetchComplaints(): Promise<Complaint[]> {
 
   const { data: users, error: usersError } = await supabase
     .from('users')
-    .select('id, name, last_name')
+    .select('id, name, last_name, phone')
     .in('id', Array.from(userIds));
   if (usersError) throw usersError;
 
@@ -92,4 +95,12 @@ export async function fetchComplaints(): Promise<Complaint[]> {
       review.to_driver_id ? userMap.get(review.to_driver_id) : undefined,
     ),
   );
+}
+
+export async function markReviewAsReviewed(reviewId: string): Promise<void> {
+  const { error } = await supabase
+    .from('reviews')
+    .update({ status: 'reviewed' })
+    .eq('id', reviewId);
+  if (error) throw error;
 }

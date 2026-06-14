@@ -35,7 +35,7 @@ export default function LoginPage() {
               onChange={(e) => setLogin(e.target.value)}
               autoComplete="username"
               className="w-full px-3 py-2 text-sm border border-[#D6DCDC] rounded-sm focus:outline-none focus:border-[#476673] bg-white text-[#476673]"
-              placeholder="admin"
+              placeholder="логин"
             />
           </div>
 

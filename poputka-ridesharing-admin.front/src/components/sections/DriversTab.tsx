@@ -6,7 +6,7 @@ import {
   Phone,
   Mail,
   Car,
-  ShieldOff,
+  ShieldBan,
   Loader2,
   ChevronLeft,
   ChevronRight,
@@ -18,13 +18,14 @@ import {
 import {
   DbDriver,
   fetchVerifiedDrivers,
-  revokeDriverVerification,
+  blockDriver,
   fetchDriverPayoutSum,
   fetchDriverRides,
   buildDocumentUrl,
   isPdfPath,
 } from '../../lib/drivers';
 import { DbRideSummary } from '../../lib/users';
+import { rideStatusLabel, rideStatusBadgeClass } from '../../lib/statuses';
 
 const formatDate = (iso: string | null) => {
   if (!iso) return '—';
@@ -44,7 +45,16 @@ const initials = (name: string | undefined, last: string | null | undefined) => 
 const driverFullName = (d: DbDriver) =>
   d.user ? [d.user.name, d.user.last_name].filter(Boolean).join(' ') : '—';
 
-export default function DriversTab() {
+interface DriversTabProps {
+  onLogAction: (
+    action: string,
+    targetType: 'user_state',
+    targetId: string,
+    details: string,
+  ) => void;
+}
+
+export default function DriversTab({ onLogAction }: DriversTabProps) {
   const [drivers, setDrivers] = useState<DbDriver[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -53,8 +63,8 @@ export default function DriversTab() {
   const itemsPerPage = 10;
 
   const [selected, setSelected] = useState<DbDriver | null>(null);
-  const [confirmRevoke, setConfirmRevoke] = useState<DbDriver | null>(null);
-  const [revoking, setRevoking] = useState(false);
+  const [confirmBlock, setConfirmBlock] = useState<DbDriver | null>(null);
+  const [blocking, setBlocking] = useState(false);
 
   const load = async () => {
     try {
@@ -94,17 +104,23 @@ export default function DriversTab() {
     return filtered.slice(start, start + itemsPerPage);
   }, [filtered, currentPage]);
 
-  const handleRevoke = async (driver: DbDriver) => {
+  const handleBlock = async (driver: DbDriver) => {
     try {
-      setRevoking(true);
-      await revokeDriverVerification(driver.id);
-      setConfirmRevoke(null);
+      setBlocking(true);
+      await blockDriver(driver.id);
+      onLogAction(
+        'Водитель заблокирован',
+        'user_state',
+        driver.id,
+        `Водитель ${driverFullName(driver)} заблокирован (is_blocked = true).`,
+      );
+      setConfirmBlock(null);
       setSelected(null);
       await load();
     } catch (e: any) {
-      alert(`Не удалось отозвать верификацию: ${e?.message ?? 'ошибка'}`);
+      alert(`Не удалось заблокировать водителя: ${e?.message ?? 'ошибка'}`);
     } finally {
-      setRevoking(false);
+      setBlocking(false);
     }
   };
 
@@ -203,7 +219,7 @@ export default function DriversTab() {
                         <td className="p-4 text-center text-xs text-[#476673]">
                           <span className="inline-flex items-center gap-1">
                             <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
-                            {(d.user?.rating ?? 0).toFixed(1)}
+                            {(d.rating ?? 0).toFixed(1)}
                           </span>
                         </td>
                         <td className="p-4 text-xs text-[#476673] font-mono">
@@ -218,11 +234,11 @@ export default function DriversTab() {
                             <Eye className="w-4 h-4" />
                           </button>
                           <button
-                            title="Отозвать верификацию"
-                            onClick={() => setConfirmRevoke(d)}
+                            title="Заблокировать"
+                            onClick={() => setConfirmBlock(d)}
                             className="p-1.5 text-rose-600 hover:bg-rose-50 transition-colors inline-block"
                           >
-                            <ShieldOff className="w-4 h-4" />
+                            <ShieldBan className="w-4 h-4" />
                           </button>
                         </td>
                       </tr>
@@ -265,46 +281,43 @@ export default function DriversTab() {
         <DriverDetailDrawer
           driver={selected}
           onClose={() => setSelected(null)}
-          onRevokeRequest={() => setConfirmRevoke(selected)}
+          onBlockRequest={() => setConfirmBlock(selected)}
         />
       )}
 
-      {confirmRevoke && (
+      {confirmBlock && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[60]">
           <div className="bg-white rounded-sm border border-rose-200 shadow-2xl w-full max-w-md overflow-hidden">
             <div className="p-6 bg-rose-50 border-b border-rose-100 flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center">
-                <ShieldOff className="w-5 h-5" />
+                <ShieldBan className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-base font-bold text-rose-950">
-                  Отозвать верификацию?
-                </h3>
-                <p className="text-xs text-rose-700/80">
-                  Водитель: {driverFullName(confirmRevoke)}
-                </p>
+                <h3 className="text-base font-bold text-rose-950">Заблокировать водителя?</h3>
+                <p className="text-xs text-rose-700/80">Водитель: {driverFullName(confirmBlock)}</p>
               </div>
             </div>
             <div className="p-6 text-xs text-[#476673] leading-relaxed">
-              Поле <code className="font-mono">is_verified</code> будет переключено в{' '}
-              <code className="font-mono">false</code>. Водитель уйдёт обратно в раздел «Заявки на
-              проверку». Это действие можно откатить — заново подтвердить там.
+              В таблице <code className="font-mono">drivers</code> поле{' '}
+              <code className="font-mono">is_blocked</code> будет установлено в{' '}
+              <code className="font-mono">true</code>. Водитель появится в чёрном списке на экране
+              «Жалобы».
             </div>
             <div className="bg-gray-50 p-4 border-t border-[#D6DCDC] flex items-center justify-end gap-2">
               <button
-                onClick={() => setConfirmRevoke(null)}
-                disabled={revoking}
+                onClick={() => setConfirmBlock(null)}
+                disabled={blocking}
                 className="px-4 py-2 rounded-sm border border-[#D6DCDC] text-xs font-bold text-[#476673] hover:bg-gray-100 bg-white disabled:opacity-50"
               >
                 Отмена
               </button>
               <button
-                onClick={() => handleRevoke(confirmRevoke)}
-                disabled={revoking}
+                onClick={() => handleBlock(confirmBlock)}
+                disabled={blocking}
                 className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-xs font-bold text-white shadow-sm disabled:opacity-50 inline-flex items-center gap-2"
               >
-                {revoking && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                Отозвать
+                {blocking && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                Заблокировать
               </button>
             </div>
           </div>
@@ -317,11 +330,11 @@ export default function DriversTab() {
 function DriverDetailDrawer({
   driver,
   onClose,
-  onRevokeRequest,
+  onBlockRequest,
 }: {
   driver: DbDriver;
   onClose: () => void;
-  onRevokeRequest: () => void;
+  onBlockRequest: () => void;
 }) {
   const [rides, setRides] = useState<DbRideSummary[] | null>(null);
   const [payoutSum, setPayoutSum] = useState<number | null>(null);
@@ -422,13 +435,13 @@ function DriverDetailDrawer({
           <div className="bg-[#F3F4F6] p-4 rounded-sm border border-[#D6DCDC] text-center">
             <span className="text-xs text-[#8BA6B1] font-semibold">Поездок</span>
             <p className="text-2xl font-bold text-[#476673] mt-1">
-              {driver.user?.trips_count ?? 0}
+              {driver.trips_count ?? 0}
             </p>
           </div>
           <div className="bg-[#F3F4F6] p-4 rounded-sm border border-[#D6DCDC] text-center">
             <span className="text-xs text-[#8BA6B1] font-semibold">Рейтинг</span>
             <p className="text-2xl font-bold text-[#476673] mt-1">
-              {(driver.user?.rating ?? 0).toFixed(1)}
+              {(driver.rating ?? 0).toFixed(1)}
             </p>
           </div>
         </div>
@@ -491,11 +504,11 @@ function DriverDetailDrawer({
 
       <div className="p-6 bg-gray-50 border-t border-[#D6DCDC] sticky bottom-0">
         <button
-          onClick={onRevokeRequest}
+          onClick={onBlockRequest}
           className="w-full py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-sm uppercase flex items-center justify-center gap-2"
         >
-          <ShieldOff className="w-4 h-4" />
-          Отозвать верификацию
+          <ShieldBan className="w-4 h-4" />
+          Заблокировать
         </button>
       </div>
     </div>
@@ -561,13 +574,9 @@ function RideCard({ ride }: { ride: DbRideSummary }) {
           {ride.to_city?.name ?? `#${ride.to_city_id}`}
         </div>
         <span
-          className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-            ride.status === 'active'
-              ? 'bg-emerald-100 text-emerald-800'
-              : 'bg-rose-100 text-rose-800'
-          }`}
+          className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${rideStatusBadgeClass(ride.status)}`}
         >
-          {ride.status === 'active' ? 'Активна' : 'Отменена'}
+          {rideStatusLabel(ride.status)}
         </span>
       </div>
       <div className="mt-1.5 flex items-center justify-between text-[11px] text-[#8BA6B1]">

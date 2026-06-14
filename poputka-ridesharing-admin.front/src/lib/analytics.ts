@@ -62,8 +62,6 @@ interface DbUserRow {
   id: string;
   name: string;
   last_name: string | null;
-  rating: number | null;
-  trips_count: number | null;
 }
 
 const TOP_RATING_THRESHOLD = 4.8;
@@ -81,14 +79,6 @@ function formatPercent(value: number): number {
   return Math.round(value * 10) / 10;
 }
 
-function driverRating(driver: DbDriverRow, user?: DbUserRow): number {
-  return user?.rating ?? driver.rating ?? 0;
-}
-
-function driverTrips(driver: DbDriverRow, user?: DbUserRow): number {
-  return user?.trips_count ?? driver.trips_count ?? 0;
-}
-
 export async function fetchAnalytics(): Promise<AnalyticsData> {
   const [ridesRes, citiesRes, reviewsRes, bookingsRes, driversRes, usersRes] =
     await Promise.all([
@@ -104,7 +94,7 @@ export async function fetchAnalytics(): Promise<AnalyticsData> {
         .eq('is_verified', true),
       supabase
         .from('users')
-        .select('id, name, last_name, rating, trips_count')
+        .select('id, name, last_name')
         .eq('is_driver', true),
     ]);
 
@@ -191,24 +181,21 @@ export async function fetchAnalytics(): Promise<AnalyticsData> {
     }))
     .sort((a, b) => b.passengerCount - a.passengerCount || b.averagePrice - a.averagePrice);
 
-  const topDriversCount = drivers.filter((driver) => {
-    const rating = driverRating(driver, users.get(driver.id));
-    return rating >= TOP_RATING_THRESHOLD;
-  }).length;
+  const topDriversCount = drivers.filter(
+    (driver) => (driver.rating ?? 0) >= TOP_RATING_THRESHOLD,
+  ).length;
 
   const topDrivers: TopDriver[] = drivers
     .map((driver) => {
       const user = users.get(driver.id);
       const name = user ? fullName(user) : '—';
-      const rating = driverRating(driver, user);
-      const completedRides = driverTrips(driver, user);
       return {
         id: driver.id,
         name,
         carModel: driver.brand,
         avatar: avatarUrl(name),
-        rating,
-        completedRides,
+        rating: driver.rating ?? 0,
+        completedRides: driver.trips_count ?? 0,
       };
     })
     .sort((a, b) => b.rating - a.rating || b.completedRides - a.completedRides)

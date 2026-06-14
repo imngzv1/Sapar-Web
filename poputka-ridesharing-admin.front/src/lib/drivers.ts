@@ -23,8 +23,6 @@ export interface DriverUserInfo {
   last_name: string | null;
   phone: string;
   email: string;
-  rating: number | null;
-  trips_count: number | null;
 }
 
 export interface DbDriver {
@@ -38,7 +36,10 @@ export interface DbDriver {
   photo_medical_certificate: string | null;
   photo_criminal_record: string | null;
   is_verified: boolean | null;
+  is_blocked: boolean | null;
   created_at: string | null;
+  rating: number | null;
+  trips_count: number | null;
   user: DriverUserInfo | null;
 }
 
@@ -46,8 +47,8 @@ const DRIVER_SELECT = `
   id, brand, number, color,
   photo_passport, photo_license_car, photo_tech_passport,
   photo_medical_certificate, photo_criminal_record,
-  is_verified, created_at,
-  user:users!drivers_id_fkey(name, last_name, phone, email, rating, trips_count)
+  is_verified, is_blocked, created_at, rating, trips_count,
+  user:users!drivers_id_fkey(name, last_name, phone, email)
 `;
 
 export async function fetchVerifiedDrivers(): Promise<DbDriver[]> {
@@ -55,6 +56,7 @@ export async function fetchVerifiedDrivers(): Promise<DbDriver[]> {
     .from('drivers')
     .select(DRIVER_SELECT)
     .eq('is_verified', true)
+    .or('is_blocked.is.null,is_blocked.eq.false')
     .order('created_at', { ascending: false });
   if (error) throw error;
   return (data ?? []) as unknown as DbDriver[];
@@ -68,6 +70,32 @@ export async function fetchPendingDrivers(): Promise<DbDriver[]> {
     .order('created_at', { ascending: true });
   if (error) throw error;
   return (data ?? []) as unknown as DbDriver[];
+}
+
+export async function fetchBlockedDrivers(): Promise<DbDriver[]> {
+  const { data, error } = await supabase
+    .from('drivers')
+    .select(DRIVER_SELECT)
+    .eq('is_blocked', true)
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as unknown as DbDriver[];
+}
+
+export async function blockDriver(driverId: string): Promise<void> {
+  const { error } = await supabase
+    .from('drivers')
+    .update({ is_blocked: true })
+    .eq('id', driverId);
+  if (error) throw error;
+}
+
+export async function unblockDriver(driverId: string): Promise<void> {
+  const { error } = await supabase
+    .from('drivers')
+    .update({ is_blocked: false })
+    .eq('id', driverId);
+  if (error) throw error;
 }
 
 export async function revokeDriverVerification(driverId: string): Promise<void> {

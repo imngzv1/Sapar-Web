@@ -7,8 +7,24 @@ import {
  X,
  Loader2
 } from 'lucide-react';
-import { Ride, RideStatus } from '../../types';
+import { Ride } from '../../types';
 import { fetchRides, cancelRideInDb } from '../../lib/rides';
+import { rideStatusBadgeClass, rideStatusLabel } from '../../lib/statuses';
+
+type RideStatusFilter = 'all' | 'waiting' | 'completed';
+
+function matchesRideStatusFilter(dbStatus: string, filter: RideStatusFilter): boolean {
+  const s = dbStatus.toLowerCase();
+  if (filter === 'all') return true;
+  if (filter === 'waiting') return s === 'waiting' || s === 'on_way' || s === 'active';
+  if (filter === 'completed') return s === 'completed';
+  return true;
+}
+
+function canCancelRide(dbStatus: string): boolean {
+  const s = dbStatus.toLowerCase();
+  return s === 'waiting' || s === 'on_way' || s === 'active';
+}
 
 interface RidesTabProps {
  onLogAction: (action: string, targetType: 'finance' | 'user_state', targetId: string, details: string) => void;
@@ -41,7 +57,7 @@ export default function RidesTab({
 
  const [fromFilter, setFromFilter] = useState('all');
  const [toFilter, setToFilter] = useState('all');
- const [statusFilter, setStatusFilter] = useState<RideStatus | 'all'>('all');
+ const [statusFilter, setStatusFilter] = useState<RideStatusFilter>('all');
  const [selectedRide, setSelectedRide] = useState<Ride | null>(null);
 
  // Derive unique cities
@@ -59,7 +75,7 @@ export default function RidesTab({
  return rides.filter(r => {
  const matchFrom = fromFilter === 'all' ? true : r.fromCity === fromFilter;
  const matchTo = toFilter === 'all' ? true : r.toCity === toFilter;
- const matchStatus = statusFilter === 'all' ? true : r.status === statusFilter;
+ const matchStatus = matchesRideStatusFilter(r.dbStatus, statusFilter);
  return matchFrom && matchTo && matchStatus;
  });
  }, [rides, fromFilter, toFilter, statusFilter]);
@@ -73,7 +89,7 @@ export default function RidesTab({
    await cancelRideInDb(ride.id);
    setRides((prev) =>
      prev.map((r) =>
-       r.id === ride.id ? { ...r, status: 'Cancelled' as const, passengers: [] } : r,
+       r.id === ride.id ? { ...r, status: 'Cancelled' as const, dbStatus: 'cancelled', passengers: [] } : r,
      ),
    );
    onLogAction(
@@ -84,7 +100,7 @@ export default function RidesTab({
    );
    if (selectedRide?.id === ride.id) {
      setSelectedRide((prev) =>
-       prev ? { ...prev, status: 'Cancelled', passengers: [] } : null,
+       prev ? { ...prev, status: 'Cancelled', dbStatus: 'cancelled', passengers: [] } : null,
      );
    }
  } catch (e: any) {
@@ -144,16 +160,15 @@ export default function RidesTab({
  </div>
 
  <div>
- <label className="block text-xs font-bold text-[#476673] mb-1.5 uppercase tracking-wider">Текущее состояние рейса</label>
+ <label className="block text-xs font-bold text-[#476673] mb-1.5 uppercase tracking-wider">Статус рейса</label>
  <select
  value={statusFilter}
- onChange={(e) => setStatusFilter(e.target.value as RideStatus | 'all')}
+ onChange={(e) => setStatusFilter(e.target.value as RideStatusFilter)}
  className="w-full text-xs p-2.5 bg-[#F3F4F6] rounded-sm border border-[#D6DCDC] text-[#476673]"
  >
- <option value="all">Любое состояние</option>
- <option value="Active">В пути / Ожидает</option>
- <option value="Completed">Завершена успешно</option>
- <option value="Cancelled">Отменена</option>
+ <option value="all">Все</option>
+ <option value="waiting">В ожидании</option>
+ <option value="completed">Завершенные</option>
  </select>
  </div>
  </div>
@@ -241,13 +256,8 @@ export default function RidesTab({
 
  {/* Status */}
  <td className="p-4">
- <span className={`px-2 py-0.5 text-xs font-semibold rounded ${
- ride.status === 'Active' ? 'bg-amber-100 text-amber-800 rounded-sm border border-amber-200' :
- ride.status === 'Completed' ? 'bg-emerald-100 text-emerald-800' :
- 'bg-rose-100 text-rose-800'
- }`}>
- {ride.status === 'Active' ? 'Активна' :
- ride.status === 'Completed' ? 'Завершена' : 'Отменена'}
+ <span className={`px-2 py-0.5 text-xs font-semibold rounded ${rideStatusBadgeClass(ride.dbStatus)}`}>
+ {rideStatusLabel(ride.dbStatus)}
  </span>
  </td>
 
@@ -261,7 +271,7 @@ export default function RidesTab({
  <Eye className="w-4.5 h-4.5" />
  </button>
 
- {ride.status === 'Active' && (
+ {canCancelRide(ride.dbStatus) && (
  <button
  onClick={() => handleCancelRide(ride)}
  disabled={cancellingId === ride.id}
@@ -351,7 +361,7 @@ export default function RidesTab({
  {/* Status info/actions */}
  <div className="flex justify-between items-center pt-4 border-t border-gray-100 text-xs text-[#8BA6B1]">
  <span>Дата: {selectedRide.date} • {selectedRide.time}</span>
- {selectedRide.status === 'Active' && (
+ {canCancelRide(selectedRide.dbStatus) && (
  <button
  onClick={() => handleCancelRide(selectedRide)}
  className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold rounded-sm border border-rose-200"

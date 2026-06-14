@@ -120,6 +120,7 @@ export function mapDbRideToRide(db: DbRide): Ride {
     totalSeats: db.total_seats,
     occupiedSeats,
     status: mapRideStatus(db.status),
+    dbStatus: db.status,
     carModel: db.driver?.brand ?? '—',
     passengers,
   };
