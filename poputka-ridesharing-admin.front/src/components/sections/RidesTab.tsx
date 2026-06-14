@@ -1,31 +1,44 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
- ClipboardList, 
  MapPin, 
- Calendar, 
- Clock, 
  Users, 
- Search, 
- Phone,
  Eye,
- CheckCircle2,
  XCircle,
- AlertCircle,
- X
+ X,
+ Loader2
 } from 'lucide-react';
 import { Ride, RideStatus } from '../../types';
+import { fetchRides, cancelRideInDb } from '../../lib/rides';
 
 interface RidesTabProps {
- rides: Ride[];
- onCancelRide: (rideId: string) => void;
  onLogAction: (action: string, targetType: 'finance' | 'user_state', targetId: string, details: string) => void;
 }
 
 export default function RidesTab({
- rides,
- onCancelRide,
  onLogAction
 }: RidesTabProps) {
+ const [rides, setRides] = useState<Ride[]>([]);
+ const [loading, setLoading] = useState(true);
+ const [error, setError] = useState<string | null>(null);
+ const [cancellingId, setCancellingId] = useState<string | null>(null);
+
+ const loadRides = async () => {
+   try {
+     setLoading(true);
+     const data = await fetchRides();
+     setRides(data);
+     setError(null);
+   } catch (e: any) {
+     setError(e?.message ?? 'Не удалось загрузить поездки');
+   } finally {
+     setLoading(false);
+   }
+ };
+
+ useEffect(() => {
+   loadRides();
+ }, []);
+
  const [fromFilter, setFromFilter] = useState('all');
  const [toFilter, setToFilter] = useState('all');
  const [statusFilter, setStatusFilter] = useState<RideStatus | 'all'>('all');
@@ -51,18 +64,33 @@ export default function RidesTab({
  });
  }, [rides, fromFilter, toFilter, statusFilter]);
 
- const handleCancelRide = (ride: Ride) => {
- if (confirm(`Вы действительно хотите принудительно ОТМЕНИТЬ рейс №${ride.id} (${ride.fromCity} - ${ride.toCity})? Все забронированные пассажиры получат 100% возврат оплаты.`)) {
- onCancelRide(ride.id);
- onLogAction(
- 'Отмена поездки админом',
- 'finance',
- ride.id,
- `Принудительно отменен рейс №${ride.id} от водителя ${ride.driverName}. Запущена автоматическая процедура возврата средств пассажирам.`
- );
- if (selectedRide?.id === ride.id) {
- setSelectedRide(prev => prev ? { ...prev, status: 'Cancelled', passengers: [] } : null);
+ const handleCancelRide = async (ride: Ride) => {
+ if (!confirm(`Вы действительно хотите принудительно ОТМЕНИТЬ рейс №${ride.id} (${ride.fromCity} - ${ride.toCity})? Все забронированные пассажиры получат 100% возврат оплаты.`)) {
+   return;
  }
+ try {
+   setCancellingId(ride.id);
+   await cancelRideInDb(ride.id);
+   setRides((prev) =>
+     prev.map((r) =>
+       r.id === ride.id ? { ...r, status: 'Cancelled' as const, passengers: [] } : r,
+     ),
+   );
+   onLogAction(
+     'Отмена поездки админом',
+     'finance',
+     ride.id,
+     `Принудительно отменен рейс №${ride.id} от водителя ${ride.driverName}. Запущена автоматическая процедура возврата средств пассажирам.`,
+   );
+   if (selectedRide?.id === ride.id) {
+     setSelectedRide((prev) =>
+       prev ? { ...prev, status: 'Cancelled', passengers: [] } : null,
+     );
+   }
+ } catch (e: any) {
+   alert(e?.message ?? 'Не удалось отменить поездку');
+ } finally {
+   setCancellingId(null);
  }
  };
 
@@ -74,6 +102,21 @@ export default function RidesTab({
  <p className="text-sm text-[#8BA6B1]">Активные и завершённые рейсы, отмена с возвратом денег</p>
  </div>
 
+ {loading && (
+   <div className="flex items-center justify-center gap-2 py-16 text-[#8BA6B1]">
+     <Loader2 className="w-5 h-5 animate-spin" />
+     <span className="text-sm">Загружаем поездки...</span>
+   </div>
+ )}
+
+ {!loading && error && (
+   <div className="bg-rose-50 border border-rose-200 text-rose-800 text-sm p-4 rounded-sm">
+     {error}
+   </div>
+ )}
+
+ {!loading && !error && (
+   <>
  {/* Cities and status filters */}
  <div className="bg-white p-5 rounded-sm border border-[#D6DCDC] shadow-xs grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
  <div>
@@ -221,10 +264,15 @@ export default function RidesTab({
  {ride.status === 'Active' && (
  <button
  onClick={() => handleCancelRide(ride)}
+ disabled={cancellingId === ride.id}
  title="Принудительно отменить рейс"
- className="p-1.5 text-rose-600 hover:bg-rose-50 transition-colors inline-block"
+ className="p-1.5 text-rose-600 hover:bg-rose-50 transition-colors inline-block disabled:opacity-40"
  >
- <XCircle className="w-4.5 h-4.5" />
+ {cancellingId === ride.id ? (
+   <Loader2 className="w-4.5 h-4.5 animate-spin" />
+ ) : (
+   <XCircle className="w-4.5 h-4.5" />
+ )}
  </button>
  )}
  </td>
@@ -324,6 +372,8 @@ export default function RidesTab({
  </div>
  </div>
  </div>
+ )}
+ </>
  )}
  </div>
  );

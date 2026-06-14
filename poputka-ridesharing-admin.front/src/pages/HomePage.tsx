@@ -87,11 +87,7 @@ export default function HomePage() {
             {activeTab === 'drivers' && <DriversTab />}
 
             {activeTab === 'rides' && (
-              <RidesTab 
-                rides={rides}
-                onCancelRide={cancelRide}
-                onLogAction={logAction}
-              />
+              <RidesTab onLogAction={logAction} />
             )}
 
             {activeTab === 'moderation' && (
