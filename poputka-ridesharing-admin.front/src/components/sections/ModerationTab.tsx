@@ -1,38 +1,52 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
  ShieldAlert, 
- AlertTriangle, 
- CheckCircle, 
  XOctagon, 
- UserPlus, 
- Trash2, 
  Search, 
- Phone,
- Clock,
- ExternalLink,
  Lock,
  Unlock,
- CornerDownRight
+ CornerDownRight,
+ Loader2
 } from 'lucide-react';
 import { Complaint, User, ComplaintStatus } from '../../types';
+import { fetchComplaints } from '../../lib/complaints';
 
 interface ModerationTabProps {
- complaints: Complaint[];
  users: User[];
- onResolveComplaint: (complaintId: string, decision: string) => void;
- onDismissComplaint: (complaintId: string, decision: string) => void;
  onUnblockUser: (userId: string) => void;
  onLogAction: (action: string, targetType: 'complaint' | 'user_state', targetId: string, details: string) => void;
 }
 
 export default function ModerationTab({
- complaints,
  users,
- onResolveComplaint,
- onDismissComplaint,
  onUnblockUser,
  onLogAction
 }: ModerationTabProps) {
+ const [complaints, setComplaints] = useState<Complaint[]>([]);
+ const [loading, setLoading] = useState(true);
+ const [error, setError] = useState<string | null>(null);
+
+ useEffect(() => {
+   let cancelled = false;
+   (async () => {
+     try {
+       setLoading(true);
+       const data = await fetchComplaints();
+       if (!cancelled) {
+         setComplaints(data);
+         setError(null);
+       }
+     } catch (e: any) {
+       if (!cancelled) setError(e?.message ?? 'Не удалось загрузить жалобы');
+     } finally {
+       if (!cancelled) setLoading(false);
+     }
+   })();
+   return () => {
+     cancelled = true;
+   };
+ }, []);
+
  const [complaintFilter, setComplaintFilter] = useState<ComplaintStatus | 'All'>('Pending');
  const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null);
  const [decisionText, setDecisionText] = useState('');
@@ -61,30 +75,33 @@ export default function ModerationTab({
  return;
  }
  if (selectedComplaint) {
- if (type === 'resolve') {
- onResolveComplaint(selectedRequestComplaintId(), decisionText);
- onLogAction(
- 'Вынесено предупреждение / Блок',
- 'complaint',
- selectedComplaint.id,
- `Жалоба №${selectedComplaint.id} разрешена. Вердикт: ${decisionText}`
- );
- } else {
- onDismissComplaint(selectedRequestComplaintId(), decisionText);
- onLogAction(
- 'Отклонение жалобы',
- 'complaint',
- selectedComplaint.id,
- `Жалоба №${selectedComplaint.id} отклонена. Причина: ${decisionText}`
- );
- }
- setSelectedComplaint(null);
- setDecisionText('');
- setDecisionError('');
+   const complaintId = selectedComplaint.id;
+   const newStatus = type === 'resolve' ? 'Resolved' as const : 'Dismissed' as const;
+   setComplaints((prev) =>
+     prev.map((c) =>
+       c.id === complaintId ? { ...c, status: newStatus, decision: decisionText } : c,
+     ),
+   );
+   if (type === 'resolve') {
+     onLogAction(
+       'Вынесено предупреждение / Блок',
+       'complaint',
+       complaintId,
+       `Жалоба №${complaintId} разрешена. Вердикт: ${decisionText}`,
+     );
+   } else {
+     onLogAction(
+       'Отклонение жалобы',
+       'complaint',
+       complaintId,
+       `Жалоба №${complaintId} отклонена. Причина: ${decisionText}`,
+     );
+   }
+   setSelectedComplaint(null);
+   setDecisionText('');
+   setDecisionError('');
  }
  };
-
- const selectedRequestComplaintId = () => selectedComplaint?.id || '';
 
  const handleUnban = (usr: User) => {
  if (confirm(`Вы действительно хотите разблокировать и восстановить доступ для ${usr.name}?`)) {
@@ -104,9 +121,23 @@ export default function ModerationTab({
  <div>
  <h2 className="text-xl font-bold text-[#476673]">Жалобы и модерация</h2>
  <p className="text-sm text-[#8BA6B1]">Жалобы пассажиров и водителей, чёрный список</p>
+ <p className="text-xs text-[#8BA6B1] mt-1">Отзывы на водителей с оценкой ниже 4 — показывается комментарий пассажира</p>
  </div>
 
- {/* Grid: Split Screen for Complaints and Blacklist */}
+ {loading && (
+   <div className="flex items-center justify-center gap-2 py-10 text-[#8BA6B1]">
+     <Loader2 className="w-5 h-5 animate-spin" />
+     <span className="text-sm">Загружаем жалобы...</span>
+   </div>
+ )}
+
+ {error && (
+   <div className="bg-rose-50 border border-rose-200 text-rose-800 text-sm p-4 rounded-sm">
+     {error}
+   </div>
+ )}
+
+ {!loading && !error && (
  <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
  
  {/* Left Side: Active Complaints */}
@@ -267,6 +298,7 @@ export default function ModerationTab({
  </div>
  </div>
  </div>
+ )}
 
  {/* Selected complaint detail ruling dialog */}
  {selectedComplaint && (

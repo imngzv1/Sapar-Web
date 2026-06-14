@@ -92,10 +92,7 @@ export default function HomePage() {
 
             {activeTab === 'moderation' && (
               <ModerationTab 
-                complaints={complaints}
                 users={users}
-                onResolveComplaint={resolveComplaint}
-                onDismissComplaint={dismissComplaint}
                 onUnblockUser={unblockUser}
                 onLogAction={logAction}
               />
