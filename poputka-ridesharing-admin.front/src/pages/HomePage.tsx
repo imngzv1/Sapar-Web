@@ -100,12 +100,7 @@ export default function HomePage() {
 
             {activeTab === 'finances' && <FinancesTab />}
 
-            {activeTab === 'analytics' && (
-              <AnalyticsTab 
-                drivers={drivers}
-                rides={rides}
-              />
-            )}
+            {activeTab === 'analytics' && <AnalyticsTab />}
 
             {activeTab === 'content' && <ContentTab />}
 
