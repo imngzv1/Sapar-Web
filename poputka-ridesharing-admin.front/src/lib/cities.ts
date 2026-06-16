@@ -3,35 +3,30 @@ import { supabase } from './supabase';
 export interface DbCity {
   id: number;
   name: string;
-  regoin: string | null;
 }
 
 export async function fetchCities(): Promise<DbCity[]> {
   const { data, error } = await supabase
     .from('cities')
-    .select('id, name, regoin')
+    .select('id, name')
     .order('name', { ascending: true });
   if (error) throw error;
   return (data ?? []) as DbCity[];
 }
 
-export async function createCity(name: string, regoin: string | null): Promise<DbCity> {
-  const payload = { name: name.trim(), regoin: regoin?.trim() || null };
+export async function createCity(name: string): Promise<DbCity> {
+  const payload = { name: name.trim() };
   const { data, error } = await supabase
     .from('cities')
     .insert(payload)
-    .select('id, name, regoin')
+    .select('id, name')
     .single();
   if (error) throw error;
   return data as DbCity;
 }
 
-export async function updateCity(
-  id: number,
-  name: string,
-  regoin: string | null,
-): Promise<void> {
-  const payload = { name: name.trim(), regoin: regoin?.trim() || null };
+export async function updateCity(id: number, name: string): Promise<void> {
+  const payload = { name: name.trim() };
   const { error } = await supabase.from('cities').update(payload).eq('id', id);
   if (error) throw error;
 }

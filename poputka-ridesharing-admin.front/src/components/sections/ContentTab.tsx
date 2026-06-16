@@ -35,13 +35,11 @@ export default function ContentTab({ onLogAction }: ContentTabProps) {
   const [search, setSearch] = useState('');
 
   const [newName, setNewName] = useState('');
-  const [newRegion, setNewRegion] = useState('');
   const [addError, setAddError] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
 
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editName, setEditName] = useState('');
-  const [editRegion, setEditRegion] = useState('');
   const [savingEdit, setSavingEdit] = useState(false);
 
   const [deletingId, setDeletingId] = useState<number | null>(null);
@@ -67,11 +65,7 @@ export default function ContentTab({ onLogAction }: ContentTabProps) {
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return cities;
-    return cities.filter(
-      (c) =>
-        c.name.toLowerCase().includes(q) ||
-        (c.regoin ?? '').toLowerCase().includes(q),
-    );
+    return cities.filter((c) => c.name.toLowerCase().includes(q));
   }, [cities, search]);
 
   const handleAdd = async (e: React.FormEvent) => {
@@ -87,10 +81,9 @@ export default function ContentTab({ onLogAction }: ContentTabProps) {
     }
     try {
       setAdding(true);
-      await createCity(name, newRegion);
+      await createCity(name);
       onLogAction('Город добавлен', 'city', name, `Добавлен город «${name}».`);
       setNewName('');
-      setNewRegion('');
       setAddError(null);
       await load();
     } catch (e: any) {
@@ -103,13 +96,11 @@ export default function ContentTab({ onLogAction }: ContentTabProps) {
   const startEdit = (c: DbCity) => {
     setEditingId(c.id);
     setEditName(c.name);
-    setEditRegion(c.regoin ?? '');
   };
 
   const cancelEdit = () => {
     setEditingId(null);
     setEditName('');
-    setEditRegion('');
   };
 
   const saveEdit = async (id: number) => {
@@ -117,7 +108,7 @@ export default function ContentTab({ onLogAction }: ContentTabProps) {
     if (!name) return;
     try {
       setSavingEdit(true);
-      await updateCity(id, name, editRegion);
+      await updateCity(id, name);
       onLogAction('Город изменён', 'city', String(id), `Город обновлён: «${name}».`);
       cancelEdit();
       await load();
@@ -167,13 +158,6 @@ export default function ContentTab({ onLogAction }: ContentTabProps) {
             placeholder="Название города *"
             className="flex-1 px-3 py-2 text-sm border border-[#D6DCDC] rounded-sm focus:outline-none focus:border-[#476673] bg-white text-[#476673]"
           />
-          <input
-            type="text"
-            value={newRegion}
-            onChange={(e) => setNewRegion(e.target.value)}
-            placeholder="Регион (необязательно)"
-            className="flex-1 px-3 py-2 text-sm border border-[#D6DCDC] rounded-sm focus:outline-none focus:border-[#476673] bg-white text-[#476673]"
-          />
           <button
             type="submit"
             disabled={adding}
@@ -196,7 +180,7 @@ export default function ContentTab({ onLogAction }: ContentTabProps) {
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8BA6B1]" />
           <input
             type="text"
-            placeholder="Поиск по названию или региону..."
+            placeholder="Поиск по названию..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-10 pr-4 py-2 bg-[#F3F4F6] rounded-sm border border-[#D6DCDC] text-sm text-[#476673] placeholder-[#8BA6B1] focus:ring-2 focus:ring-[#476673]/30 focus:outline-none"
@@ -222,14 +206,13 @@ export default function ContentTab({ onLogAction }: ContentTabProps) {
                 <tr className="bg-gray-50 border-b border-[#D6DCDC] text-xs font-semibold uppercase tracking-wider text-[#476673]/70">
                   <th className="p-4 pl-6 w-16">ID</th>
                   <th className="p-4">Название</th>
-                  <th className="p-4">Регион</th>
                   <th className="p-4 pr-6 text-right w-40">Действия</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 text-sm">
                 {filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="p-12 text-center text-[#8BA6B1]">
+                    <td colSpan={3} className="p-12 text-center text-[#8BA6B1]">
                       Городов нет.
                     </td>
                   </tr>
@@ -244,7 +227,7 @@ export default function ContentTab({ onLogAction }: ContentTabProps) {
                               type="text"
                               value={editName}
                               onChange={(e) => setEditName(e.target.value)}
-                              className="w-full px-2 py-1 text-sm border border-[#476673] rounded-sm focus:outline-none bg-white text-[#476673]"
+                              className="w-full max-w-xs px-2 py-1 text-sm border border-[#476673] rounded-sm focus:outline-none bg-white text-[#476673]"
                               autoFocus
                             />
                           ) : (
@@ -252,21 +235,6 @@ export default function ContentTab({ onLogAction }: ContentTabProps) {
                               <MapPin className="w-3.5 h-3.5 text-[#8BA6B1]" />
                               <span className="font-semibold text-[#476673]">{c.name}</span>
                             </div>
-                          )}
-                        </td>
-                        <td className="p-4 text-sm text-[#476673]">
-                          {editingId === c.id ? (
-                            <input
-                              type="text"
-                              value={editRegion}
-                              onChange={(e) => setEditRegion(e.target.value)}
-                              placeholder="—"
-                              className="w-full px-2 py-1 text-sm border border-[#476673] rounded-sm focus:outline-none bg-white text-[#476673]"
-                            />
-                          ) : (
-                            <span className={c.regoin ? '' : 'text-[#8BA6B1]'}>
-                              {c.regoin || '—'}
-                            </span>
                           )}
                         </td>
                         <td className="p-4 pr-6 text-right space-x-1">
